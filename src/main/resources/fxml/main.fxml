@@ -39,5 +39,6 @@
       </Label>
       <ToggleButton fx:id="toggleGray" layoutX="229.0" layoutY="909.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="136.0" text="GRAY SCALE" />
       <Button fx:id="btnSave" layoutX="120.0" layoutY="949.0" mnemonicParsing="false" text="Save" />
+      <Button fx:id="btnWaterShared" layoutX="475.0" layoutY="782.0" mnemonicParsing="false" text="MeanShift" />
    </children>
 </AnchorPane>

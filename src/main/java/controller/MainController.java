@@ -55,6 +55,9 @@ public class MainController {
     @FXML
     private ToggleButton toggleGray;
 
+    @FXML
+    private Button btnWaterShared;
+
     private FileChooser fileChooser = new FileChooser();
 
     private Mat leftMatrix;
@@ -112,7 +115,14 @@ public class MainController {
 
         threshouldSlider.setMin(0);
         threshouldSlider.setMax(500);
-        threshouldSlider.setOnMouseDragged(event -> threeshould((int) threshouldSlider.getValue()));
+        threshouldSlider.setShowTickMarks(true);
+        threshouldSlider.setOnMouseDragged(event -> threshold((int) threshouldSlider.getValue()));
+
+        btnWaterShared.setOnAction(event -> {
+            Mat dst = new Mat();
+            Imgproc.pyrMeanShiftFiltering(rightMatrix, dst, 20, 40, 2, new TermCriteria(TermCriteria.MAX_ITER|TermCriteria.EPS, 50, 0.001));
+            loadRightImage(dst);
+        });
     }
 
 
@@ -170,7 +180,7 @@ public class MainController {
         loadRightImage(dst);
     }
 
-    private void threeshould(int value) {
+    private void threshold(int value) {
         Mat dst = new Mat();
         Imgproc.threshold(rightMatrix, dst, value, 500, Imgproc.THRESH_TRUNC);
 
