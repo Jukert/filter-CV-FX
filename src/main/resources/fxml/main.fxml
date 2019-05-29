@@ -4,6 +4,7 @@
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.ToggleButton?>
 <?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.AnchorPane?>
@@ -24,7 +25,7 @@
             <Font size="15.0" />
          </font>
       </Label>
-      <Slider fx:id="threshouldSlider" layoutX="37.0" layoutY="920.0" />
+      <Slider fx:id="thresholdSlider" layoutX="37.0" layoutY="920.0" />
       <Label layoutX="42.0" layoutY="890.0" text="Threshold">
          <font>
             <Font size="16.0" />
@@ -39,6 +40,26 @@
       </Label>
       <ToggleButton fx:id="toggleGray" layoutX="229.0" layoutY="909.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="136.0" text="GRAY SCALE" />
       <Button fx:id="btnSave" layoutX="120.0" layoutY="949.0" mnemonicParsing="false" text="Save" />
-      <Button fx:id="btnWaterShared" layoutX="475.0" layoutY="782.0" mnemonicParsing="false" text="MeanShift" />
+      <Button fx:id="btnMineShift" layoutX="573.0" layoutY="937.0" mnemonicParsing="false" prefHeight="25.0" prefWidth="174.0" text="MeanShift" />
+      <Slider fx:id="contrastSlider" layoutX="410.0" layoutY="860.0" />
+      <Label layoutX="410.0" layoutY="834.0" text="Contrasrt">
+         <font>
+            <Font size="15.0" />
+         </font>
+      </Label>
+      <TextField fx:id="srField" layoutX="611.0" layoutY="754.0" prefHeight="25.0" prefWidth="136.0" />
+      <TextField fx:id="spField" layoutX="611.0" layoutY="792.0" prefHeight="25.0" prefWidth="136.0" />
+      <Label layoutX="570.0" layoutY="758.0" text="SR" />
+      <Label layoutX="570.0" layoutY="796.0" text="SP" />
+      <Line endX="100.0" layoutX="654.0" layoutY="746.0" startX="-95.0" />
+      <Line endX="-95.5" endY="213.0" layoutX="654.0" layoutY="760.0" startX="-95.5" startY="-13.5" />
+      <Line endX="197.5" endY="3.5" layoutX="559.0" layoutY="970.0" startY="3.5" />
+      <Line endX="26.0" endY="190.0" layoutX="731.0" layoutY="783.0" startX="23.5" startY="-36.5" />
+      <TextField fx:id="maxLvlField" layoutX="611.0" layoutY="827.0" prefHeight="25.0" prefWidth="136.0" />
+      <TextField fx:id="maxCountField" layoutX="611.0" layoutY="865.0" prefHeight="25.0" prefWidth="136.0" />
+      <TextField fx:id="epsionField" layoutX="611.0" layoutY="899.0" prefHeight="25.0" prefWidth="136.0" />
+      <Label layoutX="562.0" layoutY="830.0" text="MaxLVL" />
+      <Label layoutX="557.0" layoutY="866.0" text="Max count" />
+      <Label layoutX="570.0" layoutY="903.0" text="Epsion" />
    </children>
 </AnchorPane>

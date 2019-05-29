@@ -16,7 +16,9 @@ import org.opencv.imgproc.Imgproc;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class MainController {
 
@@ -29,7 +31,7 @@ public class MainController {
     private ImageView afterImage;
 
     @FXML
-    private Slider threshouldSlider;
+    private Slider thresholdSlider;
 
     @FXML
     private Slider blurSlider;
@@ -56,7 +58,25 @@ public class MainController {
     private ToggleButton toggleGray;
 
     @FXML
-    private Button btnWaterShared;
+    private Button btnMineShift;
+
+    @FXML
+    private Slider contrastSlider;
+
+    @FXML
+    private TextField srField;
+
+    @FXML
+    private TextField spField;
+
+    @FXML
+    private TextField epsionField;
+
+    @FXML
+    private TextField maxLvlField;
+
+    @FXML
+    private TextField maxCountField;
 
     private FileChooser fileChooser = new FileChooser();
 
@@ -70,11 +90,16 @@ public class MainController {
 
     @FXML
     void initialize() {
+        spField.setText(String.valueOf(30));
+        srField.setText(String.valueOf(40));
+        epsionField.setText(String.valueOf(0.0001));
+        maxCountField.setText(String.valueOf(50));
+        maxLvlField.setText(String.valueOf(2));
         btnCancel.setOnAction(event -> loadRightImage(leftMatrix));
 
         btnSelectFile.setOnAction(event -> {
             fileChooser.setSelectedExtensionFilter(new FileChooser.ExtensionFilter("Images", "*.jpg", "*.png"));
-            fileChooser.setInitialDirectory(new File("D:\\workspaces\\test\\testCVproject\\src\\main\\resources"));
+            fileChooser.setInitialDirectory(new File("D:\\workspaces\\test\\testCVproject\\src\\main\\resources\\images"));
             File selectedFile = fileChooser.showOpenDialog(mainFrame.getScene().getWindow());
 
             if (selectedFile != null) {
@@ -113,15 +138,24 @@ public class MainController {
             }
         });
 
-        threshouldSlider.setMin(0);
-        threshouldSlider.setMax(500);
-        threshouldSlider.setShowTickMarks(true);
-        threshouldSlider.setOnMouseDragged(event -> threshold((int) threshouldSlider.getValue()));
+        thresholdSlider.setMin(0);
+        thresholdSlider.setMax(500);
+        thresholdSlider.setShowTickMarks(true);
+        thresholdSlider.setOnMouseDragged(event -> threshold((int) thresholdSlider.getValue()));
 
-        btnWaterShared.setOnAction(event -> {
-            Mat dst = new Mat();
-            Imgproc.pyrMeanShiftFiltering(rightMatrix, dst, 20, 40, 2, new TermCriteria(TermCriteria.MAX_ITER|TermCriteria.EPS, 50, 0.001));
-            loadRightImage(dst);
+        btnMineShift.setOnAction(event -> mineShift(Double.valueOf(
+                spField.getText()), Double.valueOf(srField.getText()),
+                Integer.valueOf(maxLvlField.getText()), Integer.valueOf(maxCountField.getText()),
+                Double.valueOf(epsionField.getText())
+        ));
+
+        contrastSlider.setMin(0);
+        contrastSlider.setMax(10);
+        contrastSlider.setShowTickMarks(true);
+        contrastSlider.setShowTickLabels(true);
+        contrastSlider.setOnMouseDragged(event -> {
+            contrast((int) contrastSlider.getValue());
+//            System.out.println("asdads");
         });
     }
 
@@ -195,84 +229,23 @@ public class MainController {
         afterImage.setImage(SwingFXUtils.toFXImage(bufImage, null));
     }
 
-    /*@FXML
-    void initialize() {
-        Mat matImg1 = loadImg(filepath);
-        byte[] imgB1 = loadImg(matImg1);
-
-        Mat matImg2 = loadImg(filepath);
-
-
-
-
-        imgViewer.setImage(new Image(new ByteArrayInputStream(imgB1)));
-        imgViewer1.setImage(SwingFXUtils.toFXImage(changeTresh(120, matImg2), null));
-
-        trashSlider.setMin(0);
-        trashSlider.setMax(300);
-
-        trashSlider.setShowTickLabels(true);
-
-        trashSlider.setOnMouseDragged(e -> {
-            Mat mTemp = changeTreshB((int) trashSlider.getValue(), matImg2);
-            MatOfByte mb = new MatOfByte();
-            Imgcodecs.imencode(".jpg", mTemp, mb);
-
-        imgViewer1.setImage(SwingFXUtils.toFXImage(changeTresh((int) trashSlider.getValue(), matImg2), null)
-                *//*new Image(new ByteArrayInputStream(mb.toArray()))*//*
-        );
-        });
-    }
-
-
-    BufferedImage changeTresh(int val, Mat m) {
+    private void mineShift(double sp, double sr, int maxLevel,int maxCount, double epsion) {
         Mat dst = new Mat();
-        Imgproc.threshold(m, dst, val, 500, Imgproc.THRESH_BINARY);
-
-        byte[] data1 = new byte[dst.rows() * dst.cols() * (int) (dst.elemSize())];
-        dst.get(0, 0, data1);
-
-        BufferedImage bufImage = new BufferedImage(dst.cols(), dst.rows(),
-                BufferedImage.TYPE_BYTE_GRAY);
-
-        bufImage.getRaster().setDataElements(0, 0, dst.cols(), dst.rows(), data1);
-
-        MatOfByte matOfByteDst = new MatOfByte();
-        Imgcodecs.imencode(".jpg", dst, matOfByteDst);
-        return bufImage;
+        //sr - http://qaru.site/questions/13056581/what-does-the-color-window-radius-in-pyrmeanshiftfiltering-mean
+        Imgproc.pyrMeanShiftFiltering(rightMatrix, dst, sp, sr, maxLevel, new TermCriteria(TermCriteria.MAX_ITER|TermCriteria.EPS, maxCount, epsion));
+        loadRightImage(dst);
     }
 
-    Mat changeTreshB(int val, Mat m) {
-        Mat dst = new Mat();
-        Imgproc.threshold(m, dst, val, 500, Imgproc.THRESH_BINARY);
-
-        byte[] data1 = new byte[dst.rows() * dst.cols() * (int) (dst.elemSize())];
-        dst.get(0, 0, data1);
-
-        BufferedImage bufImage = new BufferedImage(dst.cols(), dst.rows(),
-                BufferedImage.TYPE_BYTE_GRAY);
-
-        bufImage.getRaster().setDataElements(0, 0, dst.cols(), dst.rows(), data1);
-
-        MatOfByte matOfByteDst = new MatOfByte();
-        Imgcodecs.imencode(".jpg", dst, matOfByteDst);
-        return dst;
+    private void contrast(int value) {
+        //gaussianBlur();
+        Mat destination = new Mat(rightMatrix.rows(), rightMatrix.cols(), rightMatrix.type());
+        Core.addWeighted(rightMatrix, 1.5, destination, -0.5, 0, destination);
+        loadRightImage(destination);
     }
 
-    byte[] loadImgB(String path) {
-        return loadImg(loadImg(path));
-    }
+    private void splitedHSV(Mat hsv) {
+        List<Mat> splittedHsv = new ArrayList<>();
+        Core.split(hsv, splittedHsv);
 
-    byte[] loadImg(Mat matrix) {
-        MatOfByte matOfByte = new MatOfByte();
-        Imgcodecs.imencode(".jpg", matrix, matOfByte);
-        return matOfByte.toArray();
     }
-
-    Mat loadImg(String path) {
-        Mat rgb = Imgcodecs.imread(path, Imgcodecs.IMREAD_GRAYSCALE);
-//        Mat hsv = new Mat();
-//        Imgproc.cvtColor(rgb, hsv, Imgproc.COLOR_RGB2HSV);
-        return rgb;
-    }*/
 }
