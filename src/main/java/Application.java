@@ -2,8 +2,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
-import org.opencv.core.*;
-import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.core.Core;
 
 public class Application extends javafx.application.Application {
 
@@ -24,5 +23,9 @@ public class Application extends javafx.application.Application {
         primaryStage.centerOnScreen();
         primaryStage.show();
 
+/*        Parent rootAdd = FXMLLoader.load(getClass().getResource("/fxml/chart.fxml"));
+        Stage s = new Stage();
+        s.setScene(new Scene(rootAdd,300, 300));
+        s.show();*/
     }
 }

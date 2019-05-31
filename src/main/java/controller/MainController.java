@@ -4,15 +4,32 @@ import constants.ColorsConvertationConstants;
 import javafx.collections.FXCollections;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.fxml.FXML;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.StackPane;
 import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+import org.jzy3d.chart.AWTChart;
+import org.jzy3d.colors.Color;
+import org.jzy3d.colors.ColorMapper;
+import org.jzy3d.colors.colormaps.ColorMapRainbow;
+import org.jzy3d.javafx.JavaFXChartFactory;
+import org.jzy3d.maths.Coord3d;
+import org.jzy3d.maths.Range;
+import org.jzy3d.plot3d.builder.Builder;
+import org.jzy3d.plot3d.builder.Mapper;
+import org.jzy3d.plot3d.primitives.Shape;
+import org.jzy3d.plot3d.rendering.canvas.Quality;
+import org.omg.CORBA.MARSHAL;
 import org.opencv.core.*;
+import org.opencv.highgui.HighGui;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
+import javax.swing.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -22,75 +39,67 @@ import java.util.List;
 
 public class MainController {
 
+    private final static String COLOR_GRAY = "COLOR_RGB2GRAY";
     private final String filepath = "D:\\workspaces\\test\\testCVproject\\src\\main\\resources\\lep3.jpg";
-
     @FXML
     private ImageView beforeImage;
-
     @FXML
     private ImageView afterImage;
-
     @FXML
     private Slider thresholdSlider;
-
     @FXML
     private Slider blurSlider;
-
     @FXML
     private Button btnSelectFile;
-
     @FXML
     private Label lblPath;
-
     @FXML
     private AnchorPane mainFrame;
-
     @FXML
     private ComboBox<String> colorsConverter;
-
     @FXML
     private Button btnCancel;
-
     @FXML
     private Slider gausBlurSlider;
-
     @FXML
     private ToggleButton toggleGray;
-
     @FXML
     private Button btnMineShift;
-
     @FXML
     private Slider contrastSlider;
-
     @FXML
     private TextField srField;
-
     @FXML
     private TextField spField;
-
     @FXML
     private TextField epsionField;
-
     @FXML
     private TextField maxLvlField;
-
     @FXML
     private TextField maxCountField;
-
+    @FXML
+    private Button btnBuildChart;
+    @FXML
+    private Slider backProjectionSlider;
+    @FXML
+    private ToggleButton toggleBackProjection;
+    @FXML
+    private Slider betaSlider;
+    @FXML
+    private Slider gammaSlider;
     private FileChooser fileChooser = new FileChooser();
-
     private Mat leftMatrix;
-
     private Mat rightMatrix;
-
     private Mat tempMatrix;
-
-    private final static String COLOR_GRAY = "COLOR_RGB2GRAY";
+    private Mat hue = new Mat();
+    private int bins = 25;
+    private double contrast = 2;
+    private double beta = -0.5;
+    private double gamma = 1.5;
 
     @FXML
     void initialize() {
-        spField.setText(String.valueOf(30));
+        spField.setText(String.valueOf(20));
         srField.setText(String.valueOf(40));
         epsionField.setText(String.valueOf(0.0001));
         maxCountField.setText(String.valueOf(50));
@@ -149,16 +158,120 @@ public class MainController {
                 Double.valueOf(epsionField.getText())
         ));
 
-        contrastSlider.setMin(0);
-        contrastSlider.setMax(10);
+        contrastSlider.setMin(-1.5);
+        contrastSlider.setMax(3);
+        contrastSlider.setBlockIncrement(1.5);
         contrastSlider.setShowTickMarks(true);
         contrastSlider.setShowTickLabels(true);
         contrastSlider.setOnMouseDragged(event -> {
-            contrast((int) contrastSlider.getValue());
-//            System.out.println("asdads");
+            contrast = contrastSlider.getValue();
+            contrast(contrastSlider.getValue(), beta, gamma);
+        });
+
+        betaSlider.setMin(-20);
+        betaSlider.setMax(20);
+        betaSlider.setBlockIncrement(0.1);
+        betaSlider.setShowTickMarks(true);
+        betaSlider.setShowTickLabels(true);
+        betaSlider.setOnMouseDragged(event -> {
+            beta = betaSlider.getValue();
+            contrast(contrast, betaSlider.getValue(), gamma);
+        });
+
+        gammaSlider.setMin(-100);
+        gammaSlider.setMax(100);
+        gammaSlider.setBlockIncrement(1);
+        gammaSlider.setShowTickMarks(true);
+        gammaSlider.setShowTickLabels(true);
+        gammaSlider.setOnMouseDragged(event -> {
+            gamma = gammaSlider.getValue();
+            contrast(contrast, beta, gammaSlider.getValue());
+        });
+
+        btnBuildChart.setOnAction(event -> {
+
+            List<MatOfByte> listMatrix = dataHistogramm();
+
+            byte[] r_image_b = listMatrix.get(0).toArray();
+            byte[] g_image_b = listMatrix.get(1).toArray();
+            byte[] b_image_b = listMatrix.get(2).toArray();
+
+            List<Coord3d> coord3ds = new ArrayList<>();
+            for (int i = 0; ; i++) {
+                coord3ds.add(new Coord3d(
+                        i < r_image_b.length ? r_image_b[i] : 0,
+                        i < g_image_b.length ? g_image_b[i] : 0,
+                        i < b_image_b.length ? b_image_b[i] : 0
+                ));
+                if (i >= r_image_b.length && i >= g_image_b.length && i >= b_image_b.length)
+                    break;
+            }
+
+            createForm(coord3ds);
+        });
+
+        backProjectionSlider.setBlockIncrement(5);
+        backProjectionSlider.setShowTickLabels(true);
+        backProjectionSlider.setShowTickMarks(true);
+        backProjectionSlider.setMin(0);
+        backProjectionSlider.setMax(200);
+        backProjectionSlider.setOnMouseDragged(event -> {
+            bins = (int) backProjectionSlider.getValue();
+            update();
+        });
+
+        toggleBackProjection.setOnAction(event -> {
+            if (toggleBackProjection.isSelected()) {
+                backProjection();
+            }
         });
     }
 
+    void createForm(List<Coord3d> coord3ds) {
+        JavaFXChartFactory factory = new JavaFXChartFactory();
+        AWTChart chart = getDemoChart(factory, "offscreen", coord3ds);
+        ImageView imageView = factory.bindImageView(chart);
+
+        Stage stage = new Stage();
+        // JavaFX
+        StackPane pane = new StackPane();
+        Scene scene = new Scene(pane);
+        stage.setScene(scene);
+        stage.show();
+        pane.getChildren().add(imageView);
+
+        factory.addSceneSizeChangedListener(chart, scene);
+
+        stage.setWidth(500);
+        stage.setHeight(500);
+    }
+
+    private AWTChart getDemoChart(JavaFXChartFactory factory, String toolkit, List<Coord3d> coords) {
+        // -------------------------------
+        // Define a function to plot
+        Mapper mapper = new Mapper() {
+            @Override
+            public double f(double x, double y) {
+                return Math.log(x * x + y * y);
+            }
+        };
+
+        final Shape surface = Builder.buildDelaunay(coords);
+        surface.setColorMapper(new ColorMapper(new ColorMapRainbow(), surface.getBounds().getZmin(), surface.getBounds().getZmax(), new Color(1, 1, 1, .8f)));
+        surface.setFaceDisplayed(true);
+        surface.setWireframeDisplayed(false);
+
+        // -------------------------------
+        // Create a chart
+        Quality quality = Quality.Advanced;
+        //quality.setSmoothPolygon(true);
+        //quality.setAnimated(true);
+
+        // let factory bind mouse and keyboard controllers to JavaFX node
+        AWTChart chart = (AWTChart) factory.newChart(quality, toolkit);
+        chart.getScene().getGraph().add(surface);
+        return chart;
+    }
 
     void loadLeftImage(String path) {
         this.leftMatrix = loadImageMatrix(path);
@@ -204,7 +317,7 @@ public class MainController {
 
     private void smoothing() {
         Mat dst = new Mat();
-        Imgproc.boxFilter(rightMatrix, dst, CvType.CV_64FC4,new Size(3, 3), new Point(-1, -1));
+        Imgproc.boxFilter(rightMatrix, dst, CvType.CV_64FC4, new Size(3, 3), new Point(-1, -1));
         loadRightImage(dst);
     }
 
@@ -229,23 +342,77 @@ public class MainController {
         afterImage.setImage(SwingFXUtils.toFXImage(bufImage, null));
     }
 
-    private void mineShift(double sp, double sr, int maxLevel,int maxCount, double epsion) {
+    private void mineShift(double sp, double sr, int maxLevel, int maxCount, double epsion) {
         Mat dst = new Mat();
         //sr - http://qaru.site/questions/13056581/what-does-the-color-window-radius-in-pyrmeanshiftfiltering-mean
-        Imgproc.pyrMeanShiftFiltering(rightMatrix, dst, sp, sr, maxLevel, new TermCriteria(TermCriteria.MAX_ITER|TermCriteria.EPS, maxCount, epsion));
+        //epsion - http://qaru.site/questions/607604/how-does-cvtermcriteria-work-in-opencv
+        Imgproc.pyrMeanShiftFiltering(rightMatrix, dst, sp, sr, maxLevel, new TermCriteria(TermCriteria.MAX_ITER | TermCriteria.EPS, maxCount, epsion));
         loadRightImage(dst);
     }
 
-    private void contrast(int value) {
+    private void contrast(double value, double beta, double gamma) {
         //gaussianBlur();
-        Mat destination = new Mat(rightMatrix.rows(), rightMatrix.cols(), rightMatrix.type());
-        Core.addWeighted(rightMatrix, 1.5, destination, -0.5, 0, destination);
+        Mat destination = new Mat(leftMatrix.rows(), leftMatrix.cols(), leftMatrix.type());
+        Core.addWeighted(leftMatrix, value, destination, beta, gamma, destination);
         loadRightImage(destination);
     }
 
     private void splitedHSV(Mat hsv) {
-        List<Mat> splittedHsv = new ArrayList<>();
-        Core.split(hsv, splittedHsv);
+        List<Mat> splitHsv = new ArrayList<>();
+        Core.split(hsv, splitHsv);
 
+    }
+
+    private List<Mat> separateColors() {
+        List<Mat> listColors = new ArrayList<>();
+        Core.split(rightMatrix, listColors);
+        return listColors;
+    }
+
+    private List<MatOfByte> dataHistogramm() {
+        List<Mat> colors = separateColors();
+        Mat r_hist = new Mat(), g_hist = new Mat(), b_hist = new Mat();
+        MatOfFloat ranges = new MatOfFloat(0f, 256f);
+        MatOfInt histSize = new MatOfInt(256);
+
+        Imgproc.calcHist(colors, new MatOfInt(2), new Mat(), r_hist, histSize, ranges);
+        Imgproc.calcHist(colors, new MatOfInt(1), new Mat(), g_hist, histSize, ranges);
+        Imgproc.calcHist(colors, new MatOfInt(0), new Mat(), b_hist, histSize, ranges);
+
+        MatOfByte mobr = new MatOfByte();
+        Imgcodecs.imencode(".jpg", r_hist, mobr);
+
+        MatOfByte mobg = new MatOfByte();
+        Imgcodecs.imencode(".jpg", g_hist, mobg);
+
+        MatOfByte mobb = new MatOfByte();
+        Imgcodecs.imencode(".jpg", b_hist, mobb);
+
+        Core.normalize(b_hist, b_hist, 0, rightMatrix.width());
+        Core.normalize(r_hist, r_hist, 0, rightMatrix.width());
+        Core.normalize(g_hist, g_hist, 0, rightMatrix.width());
+        return Arrays.asList(mobr, mobg, mobb);
+    }
+
+    private void backProjection() {
+        Mat hsv = new Mat();
+        Imgproc.cvtColor(rightMatrix, hsv, Imgproc.COLOR_BGR2HSV);
+        hue = new Mat(hsv.size(), hsv.depth());
+        Core.mixChannels(Arrays.asList(hsv), Arrays.asList(hue), new MatOfInt(0, 0));
+    }
+
+    private void update() {
+        if (!toggleBackProjection.isSelected()) {
+            return;
+        }
+        int histSize = Math.max(bins, 2);
+        float[] hueRange = {0, 180};
+        Mat hist = new Mat();
+        List<Mat> hueList = Arrays.asList(hue);
+        Imgproc.calcHist(hueList, new MatOfInt(0), new Mat(), hist, new MatOfInt(histSize), new MatOfFloat(hueRange), false);
+        Core.normalize(hist, hist, 0, 255, Core.NORM_MINMAX);
+        Mat backproj = new Mat();
+        Imgproc.calcBackProject(hueList, new MatOfInt(0), hist, backproj, new MatOfFloat(hueRange), 1);
+        loadRightImage(backproj);
     }
 }

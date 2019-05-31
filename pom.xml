@@ -20,8 +20,22 @@
         </plugins>
     </build>
 
+    <repositories>
+        <repository>
+            <id>jzy3d-releases</id>
+            <name>Jzy3d Releases</name>
+            <url>http://maven.jzy3d.org/releases </url>
+        </repository>
+    </repositories>
+
+
     <dependencies>
 
+        <dependency>
+            <groupId>org.jzy3d</groupId>
+            <artifactId>jzy3d-javafx</artifactId>
+            <version>1.0.0</version>
+        </dependency>
 
     </dependencies>
 
