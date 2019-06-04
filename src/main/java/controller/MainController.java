@@ -18,18 +18,15 @@ import org.jzy3d.colors.ColorMapper;
 import org.jzy3d.colors.colormaps.ColorMapRainbow;
 import org.jzy3d.javafx.JavaFXChartFactory;
 import org.jzy3d.maths.Coord3d;
-import org.jzy3d.maths.Range;
 import org.jzy3d.plot3d.builder.Builder;
 import org.jzy3d.plot3d.builder.Mapper;
 import org.jzy3d.plot3d.primitives.Shape;
 import org.jzy3d.plot3d.rendering.canvas.Quality;
-import org.omg.CORBA.MARSHAL;
 import org.opencv.core.*;
 import org.opencv.highgui.HighGui;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
-import javax.swing.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -51,8 +48,6 @@ public class MainController {
     private Slider blurSlider;
     @FXML
     private Button btnSelectFile;
-    @FXML
-    private Label lblPath;
     @FXML
     private AnchorPane mainFrame;
     @FXML
@@ -87,6 +82,10 @@ public class MainController {
     private Slider betaSlider;
     @FXML
     private Slider gammaSlider;
+    @FXML
+    private Slider cannyDetectorSlider;
+    @FXML
+    private Button btnHoughLine;
     private FileChooser fileChooser = new FileChooser();
     private Mat leftMatrix;
     private Mat rightMatrix;
@@ -96,15 +95,24 @@ public class MainController {
     private double contrast = 2;
     private double beta = -0.5;
     private double gamma = 1.5;
+    private static final int RATIO = 3;
+    private static final int KERNEL_SIZE = 3;
+    private static final Size BLUR_SIZE = new Size(3,3);
+    private Mat srcBlur = new Mat();
+    private Mat detectedEdges = new Mat();
 
     @FXML
     void initialize() {
+
         spField.setText(String.valueOf(20));
         srField.setText(String.valueOf(40));
         epsionField.setText(String.valueOf(0.0001));
         maxCountField.setText(String.valueOf(50));
         maxLvlField.setText(String.valueOf(2));
-        btnCancel.setOnAction(event -> loadRightImage(leftMatrix));
+        btnCancel.setOnAction(event -> {
+            tempMatrix = null;
+            loadRightImage(leftMatrix);
+        });
 
         btnSelectFile.setOnAction(event -> {
             fileChooser.setSelectedExtensionFilter(new FileChooser.ExtensionFilter("Images", "*.jpg", "*.png"));
@@ -217,7 +225,7 @@ public class MainController {
         backProjectionSlider.setMax(200);
         backProjectionSlider.setOnMouseDragged(event -> {
             bins = (int) backProjectionSlider.getValue();
-            update();
+            backProjUpdate();
         });
 
         toggleBackProjection.setOnAction(event -> {
@@ -225,6 +233,20 @@ public class MainController {
                 backProjection();
             }
         });
+
+        cannyDetectorSlider.setMin(0);
+        cannyDetectorSlider.setMax(200);
+        cannyDetectorSlider.setShowTickMarks(true);
+        cannyDetectorSlider.setShowTickLabels(true);
+        cannyDetectorSlider.setBlockIncrement(1);
+        cannyDetectorSlider.valueProperty().addListener((observable, oldValue, newValue) -> {
+            if (tempMatrix == null) {
+                tempMatrix = rightMatrix;
+            }
+            cannyUpdate(newValue.intValue());
+        });
+
+        btnHoughLine.setOnAction(event -> drawHoughLine());
     }
 
     void createForm(List<Coord3d> coord3ds) {
@@ -401,7 +423,7 @@ public class MainController {
         Core.mixChannels(Arrays.asList(hsv), Arrays.asList(hue), new MatOfInt(0, 0));
     }
 
-    private void update() {
+    private void backProjUpdate() {
         if (!toggleBackProjection.isSelected()) {
             return;
         }
@@ -414,5 +436,31 @@ public class MainController {
         Mat backproj = new Mat();
         Imgproc.calcBackProject(hueList, new MatOfInt(0), hist, backproj, new MatOfFloat(hueRange), 1);
         loadRightImage(backproj);
+    }
+
+    private void cannyUpdate(int value) {
+        Imgproc.blur(tempMatrix, srcBlur, BLUR_SIZE);
+        Mat dst = new Mat();
+        Imgproc.cvtColor(srcBlur, dst, Imgproc.COLOR_RGB2GRAY);
+        Imgproc.Canny(dst, detectedEdges, value, value * RATIO, KERNEL_SIZE, false);
+        dst = new Mat(tempMatrix.size(), CvType.CV_8UC3, Scalar.all(0));
+        tempMatrix.copyTo(dst, detectedEdges);
+        loadRightImage(dst);
+    }
+
+    private void drawHoughLine() {
+        Mat dst = rightMatrix;
+        //Imgproc.cvtColor(dst, cdstP, Imgproc.COLOR_GRAY2BGR);
+        // Probabilistic Line Transform
+        Mat grey = new Mat();
+        Imgproc.cvtColor(dst, grey, Imgproc.COLOR_RGB2GRAY);
+        Mat linesP = new Mat(); // will hold the results of the detection
+        Imgproc.HoughLinesP(grey, linesP, 1, Math.PI/180, 50, 50, 10); // runs the actual detection
+        // Draw the lines
+        for (int x = 0; x < linesP.rows(); x++) {
+            double[] l = linesP.get(x, 0);
+            Imgproc.line(dst, new Point(l[0], l[1]), new Point(l[2], l[3]), new Scalar(0, 0, 255), 3, Imgproc.LINE_AA, 0);
+        }
+        loadRightImage(dst);
     }
 }

@@ -64,10 +64,17 @@
       <Button fx:id="btnBuildChart" layoutX="831.0" layoutY="763.0" mnemonicParsing="false" text="Charts" />
       <Slider fx:id="backProjectionSlider" layoutX="780.0" layoutY="955.0" prefHeight="36.0" prefWidth="533.0" />
       <Label layoutX="780.0" layoutY="941.0" text="Back Projection" />
-      <ToggleButton fx:id="toggleBackProjection" layoutX="881.0" layoutY="937.0" mnemonicParsing="false" text="ON/OFF" />
+      <ToggleButton fx:id="toggleBackProjection" layoutX="881.0" layoutY="934.0" mnemonicParsing="false" text="ON/OFF" />
       <Slider fx:id="betaSlider" layoutX="410.0" layoutY="902.0" />
       <Slider fx:id="gammaSlider" layoutX="410.0" layoutY="943.0" />
       <Label layoutX="410.0" layoutY="882.0" text="Beta" />
       <Label layoutX="410.0" layoutY="926.0" text="Gamma" />
+      <Slider fx:id="cannyDetectorSlider" layoutX="780.0" layoutY="905.0" prefHeight="14.0" prefWidth="533.0" />
+      <Label layoutX="780.0" layoutY="882.0" text="Canny detector">
+         <font>
+            <Font size="14.0" />
+         </font>
+      </Label>
+      <Button fx:id="btnHoughLine" layoutX="780.0" layoutY="853.0" mnemonicParsing="false" text="HoughLines" />
    </children>
 </AnchorPane>
