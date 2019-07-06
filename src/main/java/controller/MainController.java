@@ -23,7 +23,6 @@ import org.jzy3d.plot3d.builder.Mapper;
 import org.jzy3d.plot3d.primitives.Shape;
 import org.jzy3d.plot3d.rendering.canvas.Quality;
 import org.opencv.core.*;
-import org.opencv.highgui.HighGui;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
 
@@ -32,11 +31,15 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 
 public class MainController {
 
     private final static String COLOR_GRAY = "COLOR_RGB2GRAY";
+    private static final double RATIO = 3;
+    private static final int KERNEL_SIZE = 3;
+    private static final Size BLUR_SIZE = new Size(3, 3);
     private final String filepath = "D:\\workspaces\\test\\testCVproject\\src\\main\\resources\\lep3.jpg";
     @FXML
     private ImageView beforeImage;
@@ -86,6 +89,14 @@ public class MainController {
     private Slider cannyDetectorSlider;
     @FXML
     private Button btnHoughLine;
+    @FXML
+    private TextField fieldMinLineLength;
+    @FXML
+    private TextField fieldThreeshouldLine;
+    @FXML
+    private TextField fieldMaxLineGap;
+    @FXML
+    private Button btnSave;
     private FileChooser fileChooser = new FileChooser();
     private Mat leftMatrix;
     private Mat rightMatrix;
@@ -95,14 +106,14 @@ public class MainController {
     private double contrast = 2;
     private double beta = -0.5;
     private double gamma = 1.5;
-    private static final int RATIO = 3;
-    private static final int KERNEL_SIZE = 3;
-    private static final Size BLUR_SIZE = new Size(3,3);
     private Mat srcBlur = new Mat();
     private Mat detectedEdges = new Mat();
 
     @FXML
     void initialize() {
+        fieldMaxLineGap.setText("5");
+        fieldMinLineLength.setText("5");
+        fieldThreeshouldLine.setText("2");
 
         spField.setText(String.valueOf(20));
         srField.setText(String.valueOf(40));
@@ -116,7 +127,7 @@ public class MainController {
 
         btnSelectFile.setOnAction(event -> {
             fileChooser.setSelectedExtensionFilter(new FileChooser.ExtensionFilter("Images", "*.jpg", "*.png"));
-            fileChooser.setInitialDirectory(new File("D:\\workspaces\\test\\testCVproject\\src\\main\\resources\\images"));
+            fileChooser.setInitialDirectory(new File("D:\\workspaces\\test\\testCVproject\\src\\main\\resources\\images\\newdataset"));
             File selectedFile = fileChooser.showOpenDialog(mainFrame.getScene().getWindow());
 
             if (selectedFile != null) {
@@ -246,7 +257,31 @@ public class MainController {
             cannyUpdate(newValue.intValue());
         });
 
-        btnHoughLine.setOnAction(event -> drawHoughLine());
+        btnHoughLine.setOnAction(event -> drawHoughLine(
+                Integer.valueOf(fieldThreeshouldLine.getText()),
+                Double.valueOf(fieldMinLineLength.getText()),
+                Double.valueOf(fieldMaxLineGap.getText())
+        ));
+
+        btnSave.setOnAction(event -> {
+            FileChooser fileChooser = new FileChooser();
+
+            fileChooser.setInitialDirectory(new File("D:\\workspaces\\test\\testCVproject\\src\\main\\resources\\images\\newdataset\\mask"));
+            //Set extension filter for text files
+            FileChooser.ExtensionFilter extFilter = new FileChooser.ExtensionFilter("Pictures (*.jpg)", "*.jpg");
+            fileChooser.getExtensionFilters().add(extFilter);
+            //Show save file dialog
+            File file = fileChooser.showSaveDialog(mainFrame.getScene().getWindow());
+            Imgcodecs.imwrite(file.getPath(), rightMatrix);
+
+            fileChooser.setInitialDirectory(new File("D:\\workspaces\\test\\testCVproject\\src\\main\\resources\\images\\newdataset\\mask"));
+            //Set extension filter for text files
+            extFilter = new FileChooser.ExtensionFilter("Pictures (*.jpg)", "*.jpg");
+            fileChooser.getExtensionFilters().add(extFilter);
+            //Show save file dialog
+            file = fileChooser.showSaveDialog(mainFrame.getScene().getWindow());
+            Imgcodecs.imwrite(file.getPath(), leftMatrix);
+        });
     }
 
     void createForm(List<Coord3d> coord3ds) {
@@ -329,7 +364,7 @@ public class MainController {
 
     private byte[] loadImageBytes(Mat matrix) {
         MatOfByte matrixOfB = new MatOfByte();
-        Imgcodecs.imencode(".jpg", matrix, matrixOfB);
+        Imgcodecs.imencode(".JPG", matrix, matrixOfB);
         return matrixOfB.toArray();
     }
 
@@ -448,14 +483,14 @@ public class MainController {
         loadRightImage(dst);
     }
 
-    private void drawHoughLine() {
+    private void drawHoughLine(int threeshold, double minLine, double maxLine) {
         Mat dst = rightMatrix;
         //Imgproc.cvtColor(dst, cdstP, Imgproc.COLOR_GRAY2BGR);
         // Probabilistic Line Transform
         Mat grey = new Mat();
         Imgproc.cvtColor(dst, grey, Imgproc.COLOR_RGB2GRAY);
         Mat linesP = new Mat(); // will hold the results of the detection
-        Imgproc.HoughLinesP(grey, linesP, 1, Math.PI/180, 50, 50, 10); // runs the actual detection
+        Imgproc.HoughLinesP(grey, linesP, 1, Math.PI / 180, threeshold, minLine, maxLine); // runs the actual detection
         // Draw the lines
         for (int x = 0; x < linesP.rows(); x++) {
             double[] l = linesP.get(x, 0);

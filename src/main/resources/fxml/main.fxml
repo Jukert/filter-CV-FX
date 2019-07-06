@@ -75,6 +75,12 @@
             <Font size="14.0" />
          </font>
       </Label>
-      <Button fx:id="btnHoughLine" layoutX="780.0" layoutY="853.0" mnemonicParsing="false" text="HoughLines" />
+      <Button fx:id="btnHoughLine" layoutX="1165.0" layoutY="878.0" mnemonicParsing="false" text="HoughLines" />
+      <TextField fx:id="fieldMinLineLength" layoutX="1162.0" layoutY="758.0" prefHeight="25.0" prefWidth="82.0" />
+      <Label layoutX="1162.0" layoutY="741.0" text="min line length" />
+      <TextField fx:id="fieldThreeshouldLine" layoutX="1163.0" layoutY="802.0" prefHeight="25.0" prefWidth="82.0" />
+      <Label layoutX="1164.0" layoutY="785.0" text="threeshold" />
+      <TextField fx:id="fieldMaxLineGap" layoutX="1165.0" layoutY="847.0" prefHeight="25.0" prefWidth="82.0" />
+      <Label layoutX="1166.0" layoutY="830.0" text="max line gap" />
    </children>
 </AnchorPane>
